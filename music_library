@@ -1,0 +1,42 @@
+import pandas as pd
+import sqlite3
+
+#could do a single library db or an app for multiple users with unique libraries?
+"""
+class User:
+    def __init__(self, first_name, last_name, username, user_id):
+        self.first_name = first_name
+        self.last_name = last_name
+        self.username = username
+        self.user_id = user_id
+        #potentially add a queue? or not necessary for a library
+    def create_user():
+        
+
+    #add s   
+    def add_song():
+        
+    def remove_song(): 
+"""
+        
+class Song:
+    def __init__(self, song_id, title, author, genre, length,):
+        self.song_id = song_id
+        self.title = title
+        self.author = author
+        self.genre = genre
+        self.length = length
+        
+#a library is made up of songs
+#each library should be unique to the user
+class Library:
+    def __init__():
+    
+    
+    #search title or author, returns all matches
+    def search():
+        
+    
+class Queue:
+    #compose with Library to add songs to queue
+    
