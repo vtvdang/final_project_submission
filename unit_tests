@@ -1,0 +1,121 @@
+"""
+Unit testing file for Song.py, Library.py, User.py, and App.py
+
+These tests are logically the same, but class and method names have been changed to reflect my code
+"""
+import pytest
+import time
+from User import User
+from Song import Song
+from App import App
+from Library import Library
+
+# Song Tests:
+# ==============================================================================================================
+
+def test_song_init():
+    """
+    Test that Song object initializes with the correct attributes
+    """
+    song = Song(1, "Test Song", "Test Artist", "Rock", 180)
+    assert song.song_id == 1
+    assert song.title == "Test Song"
+    assert song.artist == "Test Artist"
+    assert song.genre == "Rock"
+    assert song.length == 180
+
+def test_song_repr():
+    """
+    Test that the __repr__ method returns the correct string
+    """
+    song = Song(1, "Test Song", "Test Artist", "Rock", 180)
+    assert repr(song) == "Song('Test Song' by Test Artist)"
+
+def test_song_format_length():
+    """
+    Test that _format_length returns the correct time format
+    """
+    song = Song(1, "Test Song", "Test Artist", "Rock", 185)  # 3:05
+    assert song._format_length() == "3:05"
+    
+    song = Song(1, "Test Song", "Test Artist", "Rock", 60)  # 1:00
+    assert song._format_length() == "1:00"
+    
+    song = Song(1, "Test Song", "Test Artist", "Rock", 5)  # 0:05
+    assert song._format_length() == "0:05"
+
+def test_song_display(capsys):
+    """
+    Test that display method outputs the correct information
+    """
+    song = Song(1, "Test Song", "Test Artist", "Rock", 180)
+    song.display()
+    captured = capsys.readouterr()
+    
+    assert "ID: 1" in captured.out
+    assert "Title: Test Song" in captured.out
+    assert "Artist: Test Artist" in captured.out
+    assert "Genre: Rock" in captured.out
+    assert "Length: 3:00" in captured.out
+
+def test_song_string_length_validation():
+    """
+    Test that the Song initializes correctly with string length in mm:ss format
+    """
+    # 2:30 = 150 seconds
+    song = Song(1, "Test Song", "Test Artist", "Rock", "2:30")
+    assert song.length == 150  
+    
+    # 0:45 = 45 seconds
+    song = Song(1, "Test Song", "Test Artist", "Rock", "0:45")
+    assert song.length == 45  
+
+def test_song_length_validation_error():
+    """
+    Test that the Song raises ValueError for invalid length format
+    """
+    with pytest.raises(ValueError, match="Length must be in the format 'mm:ss'"):
+        Song(1, "Test Song", "Test Artist", "Rock", "2.30")
+    
+    with pytest.raises(ValueError, match="Length must be in the format 'mm:ss'"):
+        Song(1, "Test Song", "Test Artist", "Rock", "2:5")
+    
+    with pytest.raises(ValueError, match="Length must be in the format 'mm:ss'"):
+        Song(1, "Test Song", "Test Artist", "Rock", "invalid")
+
+def test_song_seconds_validation():
+    """
+    Test that the Song validates seconds to be less than 60
+    """
+    with pytest.raises(ValueError, match="Seconds must be less than 60"):
+        Song(1, "Test Song", "Test Artist", "Rock", "2:60")
+    
+    with pytest.raises(ValueError, match="Seconds must be less than 60"):
+        Song(1, "Test Song", "Test Artist", "Rock", "3:99")
+        
+# User Tests:
+# ==============================================================================================================
+
+def test_user_init():
+    """
+    Test that User object initializes with correct attributes:
+    """
+
+    user = User("Test User")
+    assert user.userName == "Test User"
+    assert isinstance(user.userID, int)
+    assert len(user.borrowed) == 0
+
+# Library Tests:
+# ============================================================================================================== 
+def test_inventory_init():
+    """
+    Test that Inventory object initializes with correct attributes.
+    """
+    library = Library()
+    assert isinstance(inventory.itemIDs, dict)
+    assert isinstance(inventory.userIDs, dict)
+    assert isinstance(inventory.allInventory, set)  
+
+# App Tests:
+# ============================================================================================================== 

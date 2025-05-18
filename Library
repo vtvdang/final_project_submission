@@ -1,0 +1,240 @@
+import sqlite3
+import csv
+import os
+from Song import Song
+
+class Library:
+    def __init__(self, db_file="music_library.db"):
+        self.db_file = db_file
+        self.initialize_library()
+    
+    #Initializes the main music library table
+    def initialize_library(self):
+        conn = sqlite3.connect(self.db_file)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS music_library (
+                song_id INTEGER PRIMARY KEY, title TEXT NOT NULL,
+                artist TEXT NOT NULL, genre TEXT, length INTEGER ) ''')
+        conn.commit()
+        conn.close()
+        
+    #Adds an imported song object
+    def add_song(self, song=None):
+        if song is None:
+            title = input("Enter song title: ")
+            artist = input("Enter artist name: ")
+            genre = input("Enter genre: ")
+            
+            length_input = input("Enter song length (mm:ss): ")
+            try:
+                minutes, seconds = map(int, length_input.split(':'))
+                length = minutes * 60 + seconds
+            except:
+                print("Invalid time format. Using 0:00")
+                length = 0
+                            
+            #Generates a unique song ID
+            conn = sqlite3.connect(self.db_file)
+            cursor = conn.cursor()
+            cursor.execute("SELECT MAX(song_id) FROM music_library")
+            result = cursor.fetchone()[0]
+            if result is None:
+                song_id = 1
+            else:
+                song_id = result + 1
+                            
+            #Creates and adds the song 
+            new_song = Song(song_id, title, artist, genre, length)
+            cursor.execute('''
+                INSERT INTO music_library (song_id, title, artist, genre, length)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (new_song.song_id, new_song.title, new_song.artist, new_song.genre, new_song.length))
+            
+            conn.commit()
+            conn.close()
+            print(f"Added '{new_song.title}' by {new_song.artist} to the library.")
+    
+        
+    #Remove a song from the library by ID
+    def remove_song(self, song_id=None):
+        if song_id is None:
+            song_id_input = input("Enter the song ID to remove: ")
+            try:
+                song_id = int(song_id_input)
+            except ValueError:
+                print("Invalid song ID.")
+                return
+        
+        conn = sqlite3.connect(self.db_file)
+        cursor = conn.cursor()
+        
+        # Check if the song exists
+        cursor.execute("SELECT title, artist FROM music_library WHERE song_id = ?", (song_id,))
+        song = cursor.fetchone()
+        
+        if song:
+            title, artist = song
+            cursor.execute("DELETE FROM music_library WHERE song_id = ?", (song_id,))
+            conn.commit()
+            print(f"Removed '{title}' by {artist} from the library.")
+        else:
+            print(f"No song found with ID {song_id}.")
+        
+        conn.close()
+        
+        
+    # Searches for and returns all songs matching a title, artist, or genre
+    def search(self, query=None):
+        if query is None:
+            query = input("Search: ")
+        
+        conn = sqlite3.connect(self.db_file)
+        conn.row_factory = sqlite3.Row  
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            SELECT * FROM music_library 
+            WHERE title LIKE ? OR artist LIKE ? OR genre LIKE ? ''', 
+            (f"%{query}%", f"%{query}%", f"%{query}%"))
+        
+        results = cursor.fetchall()
+        conn.close()
+        
+        if results:
+            print(f"Found {len(results)} matching songs:")
+            songs = []
+            for row in results:
+                song = Song(
+                    row['song_id'], row['title'], row['artist'], 
+                    row['genre'], row['length']
+                )
+                songs.append(song)
+                print(f"ID: {song.song_id} | {song.title} by {song.artist} | {song.genre}")
+            return songs
+        else:
+            print(f"No songs found matching '{query}'.")
+            return []
+        
+    #Lists all the existing songs in the library
+    def list_all_songs(self):
+        conn = sqlite3.connect(self.db_file)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM music_library ORDER BY artist, title")
+        results = cursor.fetchall()
+        conn.close()
+        
+        if results:
+            print(f"Your music library contains {len(results)} songs:")
+            songs = []
+            for row in results:
+                song = Song(
+                    row['song_id'], row['title'], row['artist'], 
+                    row['genre'], row['length']
+                )
+                songs.append(song)
+                print(f"ID: {song.song_id} | {song.title} by {song.artist} | {song.genre}")
+            return songs
+        else:
+            print("Your music library is empty.")
+            return []
+    
+    #Retrieves a song by its ID
+    def id_search(self, song_id):
+        conn = sqlite3.connect(self.db_file)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM music_library WHERE song_id = ?", (song_id,))
+        row = cursor.fetchone() 
+        conn.close()     
+          
+        if row:
+            return Song(
+                row['song_id'], row['title'], row['artist'], 
+                row['genre'], row['length'])
+        else:
+            return None
+        
+    """=======CSV FUNCTIONS===================================================================="""
+    #Imports from CSV file
+    def import_from_csv(self, csv_file):
+        if not os.path.exists(csv_file):
+            print(f"File {csv_file} not found.")
+            return
+        
+        conn = sqlite3.connect(self.db_file)
+        cursor = conn.cursor()
+        
+        try:
+            with open(csv_file, 'r', encoding='utf-8') as file:
+                reader = csv.reader(file)
+                headers = next(reader) 
+                
+                songs_added = 0
+                for row in reader:
+                    if len(row) >= 4:
+                        title, artist, genre, length_str = row[0], row[1], row[2], row[3]
+                        
+                        # Converts length from string to seconds
+                        try:
+                            if ':' in length_str:
+                                minutes, seconds = map(int, length_str.split(':'))
+                                length = minutes * 60 + seconds
+                            else:
+                                length = int(length_str)
+                        except:
+                            length = 0
+                            
+                        # Generate a new song ID
+                        cursor.execute("SELECT MAX(song_id) FROM music_library")
+                        result = cursor.fetchone()[0]
+                        if result is None:
+                            song_id = 1
+                        else:
+                            song_id = result + 1
+                            
+                        # Insert into database
+                        cursor.execute('''
+                            INSERT INTO music_library (song_id, title, artist, genre, length)
+                            VALUES (?, ?, ?, ?, ?)''', 
+                            (song_id, title, artist, genre, length))
+                        songs_added += 1
+                
+                conn.commit()
+                print(f"Successfully imported {songs_added} songs from {csv_file}")
+                
+        except Exception as e:
+            print(f"Error: {e}")
+        finally:
+            conn.close()
+        
+    #Exports library to a CSV file
+    def export_to_csv(self, filename="export.csv"):
+        conn = sqlite3.connect(self.db_file)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM music_library ORDER BY artist, title")
+        results = cursor.fetchall()
+        conn.close()
+        
+        if not results:
+            print("Library is empty.")
+            return
+        
+        try:
+            with open(filename, 'w', newline='', encoding='utf-8') as file:
+                writer = csv.writer(file)
+                writer.writerow(['title', 'artist', 'genre', 'length'])
+                
+                for row in results:
+                    writer.writerow([
+                        row['title'],row['artist'], row['genre'],row['length']])
+            
+            print(f"Exported {len(results)} songs to {filename}")
+        except Exception as e:
+            print(f"Error: {e}")

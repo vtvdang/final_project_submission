@@ -1,0 +1,172 @@
+import sqlite3
+import csv
+import os
+import random
+import string
+from Song import Song
+from Library import Library
+from User import User
+
+class App:
+    def __init__(self):
+        self.current_user = None
+        self.library = None
+        
+    """ 
+    Functionality: Starts the music library application
+    
+    Attributes: self
+    
+    Returns: None
+    """
+    def start(self):
+        print("\nWelcome to the Music Library\n")
+        
+        while True:
+            if not self.current_user:
+                print("\nPlease login or create an account: ")
+                print("1. Login")
+                print("2. Create new account")
+                print("3. Exit")
+                
+                choice = input("\nEnter your choice: ")
+                
+                if choice == '1':
+                    user, library_path = User.login()
+                    if user:
+                        self.current_user = user
+                        self.library = Library(library_path)
+                        self.main_menu()
+                        
+                elif choice == '2':
+                    user = User.create_user()
+                    if user:
+                        self.current_user = user
+                        library_path = f"library_{user.user_id}.db"
+                        self.library = Library(library_path)
+                        self.main_menu()
+                        
+                elif choice == '3':
+                    print("\nThank you for using the Music Library. Goodbye!\n")
+                    break
+                
+                else:
+                    print("Please pick an option from 1-3.")
+            else:
+                self.main_menu()
+                
+                
+    """ 
+    Functionality: Main menu options after logging in 
+    
+    Attributes: self
+    
+    Returns: None
+    
+    """            
+    def main_menu(self):
+        while True:
+            print(f"\n==== Music Library Menu ====\n")
+            print("1. View your library")
+            print("2. Add a song")
+            print("3. Search for songs")
+            print("4. Remove a song")
+            print("5. Logout")
+            print("6. Exit")
+            
+            choice = input("\nEnter your choice: ")
+            
+            if choice == '1':
+                self.library.list_all_songs()
+                
+            elif choice == '2':
+                self.library.add_song()
+                
+            elif choice == '3':
+                self.search_menu()
+                
+            elif choice == '4':
+                self.library.remove_song()
+                
+            elif choice == '5':
+                print(f"Goodbye, {self.current_user.first_name}!")
+                self.current_user = None
+                self.library = None
+                return
+                
+            elif choice == '6':
+                print("\nThank you for using the Music Library. Goodbye!\n")
+                exit()
+            else:
+                print("Invalid choice. Please try again.")
+                
+    
+    #Choice 4: Search
+    def search_menu(self):
+        print("\n==== Search Your Library ====\n")
+        print("1. General search")
+        print("2. Back to main menu")
+        
+        choice = input("\nEnter your choice: ")
+        
+        #Choice 2: Return to Main Menu
+        if choice == '2':
+            return
+        
+        elif choice == '1':
+            query = input("Search: ")
+            results = self.library.search(query)
+            if results:
+                self.handle_search_results(results)
+        else:
+            print("Invalid choice.")
+    
+    
+    """
+    Functionality: After returning searched items, handle what to do with search results
+    
+    Attributes: self, results (str)
+    
+    Returns: None
+    """
+    def handle_search_results(self, results):
+        while True:
+            print("\nWhat would you like to do with these results?\n")
+            print("1. View song details")
+            print("2. Remove song")
+            print("3. Return to main menu")
+            
+            choice = input("\nEnter your choice (1-3): ")
+            
+            if choice == '1':
+                song_id = input("\nEnter the ID of the song to view: ")
+                try:
+                    song_id = int(song_id)
+                    song = self.library.id_search(song_id)
+                    if song:
+                        song.display()
+                    else:
+                        print(f"No song found with ID {song_id}.")
+                except ValueError:
+                    print("Invalid song ID.")
+                    
+            elif choice == '2':
+                song_id = input("\nEnter the ID of the song to remove: ")
+                try:
+                    song_id = int(song_id)
+                    song = self.library.id_search(song_id)
+                    if song:
+                        self.library.remove_song(song_id)
+                    else:
+                        print(f"No song found with ID {song_id}.")
+                except ValueError:
+                    print("Invalid song ID.")
+                
+            elif choice == '3':
+                return
+            else:
+                print("Invalid choice. Please try again.")
+
+if __name__ == "__main__":
+    app = App()
+    app.start()

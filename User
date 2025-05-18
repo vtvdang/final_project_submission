@@ -1,0 +1,94 @@
+import sqlite3
+import os
+import random
+import string
+import time
+from Library import Library
+
+class User:
+    def __init__(self, first_name, last_name, username, user_id=None):
+        self.first_name = first_name
+        self.last_name = last_name
+        self.username = username
+        if user_id: 
+            self.user_id = user_id
+        else: 
+            self.user_id = self._generate_user_id()
+            
+    def _generate_user_id(self):
+        return abs(hash(self.username + str(time.time())))
+    
+    def create_user(db_file="users.db"):
+        first_name = input("Enter your first name: ")
+        last_name = input("Enter your last name: ")
+        username = input("Enter a username: ")
+        
+        # Check if username already exists
+        conn = sqlite3.connect(db_file)
+        cursor = conn.cursor()
+        
+        # Create users table if it doesn't exist
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                user_id TEXT PRIMARY KEY, username TEXT UNIQUE,
+                first_name TEXT, last_name TEXT, library_path TEXT
+            )''')
+        
+        # Check if username exists
+        cursor.execute("SELECT username FROM users WHERE username = ?", (username,))
+        if cursor.fetchone():
+            conn.close()
+            print(f"Username '{username}' already exists. Please try another one.")
+            return None
+        
+        # Create new user
+        new_user = User(first_name, last_name, username)
+        library_path = f"library_{new_user.user_id}.db"
+        
+        cursor.execute('''
+            INSERT INTO users (user_id, username, first_name, last_name, library_path)
+            VALUES (?, ?, ?, ?, ?)''',
+            (new_user.user_id, username, first_name, last_name, library_path))
+        
+        conn.commit()
+        conn.close()
+        
+        user_library = Library(library_path)
+        user_library.initialize_library()
+        
+        print(f"Welcome to the music library, {first_name}.")
+        return new_user
+    
+    def login(db_file="users.db"):
+        """Login an existing user"""
+        username = input("Enter your username: ")
+        
+        conn = sqlite3.connect(db_file)
+        cursor = conn.cursor()
+        
+        # Create users table if it doesn't exist
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                user_id TEXT PRIMARY KEY, username TEXT UNIQUE, first_name TEXT,
+                last_name TEXT, library_path TEXT
+            )
+        ''')
+        
+        cursor.execute('''
+            SELECT user_id, first_name, last_name, library_path 
+            FROM users 
+            WHERE username = ?''', 
+            (username))
+        
+        result = cursor.fetchone()
+        conn.close()
+        
+        if result:
+            user_id, first_name, last_name, library_path = result
+            
+            user = User(first_name, last_name, username, user_id)
+            print(f"Welcome back, {first_name}!")
+            return user, library_path
+        else:
+            print(f"User '{username}' not found.")
+            return None

@@ -1,0 +1,44 @@
+import sqlite3
+
+
+class Song:
+    def __init__(self, song_id, title, artist, genre, length):
+        self.song_id = song_id
+        self.title = title
+        self.artist = artist
+        self.genre = genre
+        self.length = length
+    
+    """Functionality: Formats the song object for reading
+    
+    Attributes: self
+    
+    Returns: (str) The song name and artist 
+    """
+    def __repr__(self):
+        return f"Song('{self.title}' by {self.artist})"
+    
+    """Functionality: Displays information about the song
+    
+    Attributes: self
+    
+    Returns: None
+    """
+    def display(self):
+        print(f"ID: {self.song_id}")
+        print(f"Title: {self.title}")
+        print(f"Artist: {self.artist}")
+        print(f"Genre: {self.genre}")
+        print(f"Length: {self.format_length()}")
+       
+    """
+    Functionality: Formats the song length for reading
+    
+    Attributes: self
+    
+    Returns: (str) The song length as mm:ss
+    """     
+    def format_length(self):
+        minutes = self.length // 60
+        seconds = self.length % 60
+        return f"{minutes}:{seconds:02d}"
